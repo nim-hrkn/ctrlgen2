@@ -11,19 +11,21 @@ version="kino Feb20_2011"
 deco="---"
 
 def RemoveExistedfile(filename):
-                try:
-                        os.path.isfile(filename)
-                        flag=1
-                except:
-                        do_nothing=0
-                        flag=0
-                if flag==1:
+                flag=os.path.isfile(filename)
+                if flag:
                         try:
                                 os.remove(filename)
                         except:
                                 print "Error: failed to remove file",filename
                                 sys.exit(10)
 		print "deleted",filename
+
+def Removefile(filename):
+		flag=os.path.isfile(filename)
+                if flag:
+			os.remove(filename)
+                print "deleted",filename
+
 
 def uniq(list):
         result = []
@@ -1021,8 +1023,8 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 		outputfile="llmchk_getwsr"
 		iexit=0
 		if (optionvalues.readrmt.Get()==0):
-		    RemoveExistedfile(returncodefile)
-		    RemoveExistedfile(outputfile)
+		    Removefile(returncodefile)
+		    Removefile(outputfile)
 		    cmd="lmchk --getwsr "+ext+" > "+outputfile+"; echo $? >"+returncodefile
 		    print deco,"Running (", cmd,")"
 		    try:
