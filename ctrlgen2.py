@@ -917,15 +917,15 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 
 
 		# add Z=
-                self.__atomstd=Atomstd()
-                for i in range(0,len(self.specsection)):
-                        atomsection= self.specsection[i]
-                        if isinstance(atomsection,Atomsection):
-                                stdstr=self.__atomstd.Getstr(atomsection.atom)
-                                print "stdstr=",stdstr
-                                stdatom=Atomsection(stdstr)
-                                stdatom.overwrite(atomsection)
-                                self.specsection[i]=stdatom
+                #self.__atomstd=Atomstd()
+                #for i in range(0,len(self.specsection)):
+                #        atomsection= self.specsection[i]
+                #        if isinstance(atomsection,Atomsection):
+                #                stdstr=self.__atomstd.Getstr(atomsection.atom)
+                #                print "stdstr=",stdstr
+                #                stdatom=Atomsection(stdstr)
+                #                stdatom.overwrite(atomsection)
+                #                self.specsection[i]=stdatom
 
 		#------- step1, find R ------------
 		ext="tmp"
@@ -945,6 +945,7 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 		#site numbers and spec numbers
 		print deco,"Step1: trying to find R."
 		sitename=GetKeyInSection("ATOM=",self.sitesection)
+		print "sitename=",sitename
 		self.ansite = '%i' % len(sitename)
 		self.anspec = '%i' % len(uniq(sitename))
 		if self.ansite==0 or  self.anspec==0:
@@ -952,12 +953,46 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 			print  self.ansite, self.anspec
 			sys.exit(10)
 
+		sitename=uniq(sitename)
+		print "uniq sitename=",sitename
+
+		# make list of spec.atom
+		specatoms=[]
+		for a_spec in self.specsection:
+			name=a_spec.Getvalue("ATOM=")
+			print "s_spec.Getvalue=",name
+			specatoms.append(name)
+		
+		# add sitename if it is not found in specsection
+		for name in sitename:
+			if  not name in specatoms:
+				aspec_str="ATOM= "+name
+				aspec=Atomsection(aspec_str)
+				self.specsection.append(aspec)
+
+                # add Z=
+                self.__atomstd=Atomstd()
+                for i in range(0,len(self.specsection)):
+                        atomsection= self.specsection[i]
+                        if isinstance(atomsection,Atomsection):
+                                stdstr=self.__atomstd.Getstr(atomsection.atom)
+                                print "stdstr=",stdstr
+                                stdatom=Atomsection(stdstr)
+                                stdatom.overwrite(atomsection)
+                                self.specsection[i]=stdatom
+
+		print "self.specsection=",len(self.specsection)
+		for aspec in self.specsection:
+			aspec.show()
+		
 
 		head = self.__head1 +self.__head2
 		all= head + list2Text(self.lines) \
 		+ list2Text(self.strucsection)  + "  NBAS= "+ self.ansite + "  NSPEC="+ self.anspec +'\n' \
          	+ list2Text(self.sitesection) \
          	+ 'SPEC\n'
+
+		print "self.specsection:=",self.specsection
 
 		for n in self.specsection:
 		    if isinstance(n,Atomsection):
