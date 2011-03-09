@@ -160,6 +160,28 @@ def GetSection(listctrl,key):
 #       sys.exit()
         return res
 
+def RemoveLines(listctrl,key):
+        """ remove lines starting key"""
+        res=[]
+        ix=0
+        sss ='^('+key.upper()+'|'+key.lower()+')'+'(\s|\Z)'
+        for x in listctrl:
+                if not re.match(sss,x): 
+			res.append(x)
+
+        return res
+
+def GetLines(listctrl,key):
+        """ get lines staring key"""
+        res=[]
+        ix=0
+        sss ='^('+key.upper()+'|'+key.lower()+')'+'(\s|\Z)'
+        for x in listctrl:
+                if(re.match(sss, x )): 
+			res.append(x)
+
+        return res
+
 
 
 def list2Text(a):
@@ -775,6 +797,10 @@ if systype==bulk, 1: ELIND=-1. 2: comment out the TETRA=0 part.
 		            nklist=arg.split("=")
 		            if len(nklist)==2:
 		                    self.nk_val.Set(nklist[1])
+		    elif re.match("--mixa_b",arg)!=None and re.match("--mixa_b=",arg)!=None:
+		            nklist=arg.split("=")
+		            if len(nklist)==2:
+		                    self.mix_a_b_val.Set(nklist[1])
 		    elif re.match("--systype",arg)!=None and re.match("--systype=",arg)!=None:
 		            syslist=arg.split("=")
 		            if len(syslist)==2:
@@ -881,8 +907,8 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 			str=str+" "+n
 		self.lines.insert(0,"#commandlinearguments "+str)
 
-                self.ctrlgensection=GetSection(self.lines,"#ctrlgen")
-                self.lines=RemoveSection(self.lines,"#ctrlgen ")
+                self.ctrlgensection=GetLines(self.lines,"#ctrlgen")
+                self.lines=RemoveLines(self.lines,"#ctrlgen")
                 optstrlist=[]
                 for n in self.ctrlgensection:
                         s=re.sub("^#ctrlgen ","",n)
