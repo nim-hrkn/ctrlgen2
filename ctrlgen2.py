@@ -189,13 +189,24 @@ def list2Text(a):
         	aaa=''
         	for i in a:
                 	aaa=aaa+i+'\n'
-	elif isinstance(a,text):
+	elif isinstance(a,basestring):
 		aaa=a
 	else:
 		print "Error: type unknown ",type(a)
 		sys.exit(10)
         return aaa
 
+def list2Text2(a):
+	if isinstance(a,list):
+        	aaa=''
+        	for i in a:
+                	aaa=aaa+i+' '
+	elif isinstance(a,basestring):
+		aaa=a
+	else:
+		print "Error: type unknown ",type(a)
+		sys.exit(10)
+        return aaa
 
 def  lines2Token(linein):
         """ convert the result of readline to token """
@@ -255,9 +266,11 @@ class Atomsection:
 	"input ATOM=V PZ=4 0 Z=50, output: V list[Keyvalues]"
 	atom=""
 	token=[]
+	disableprintlist=[]
 	def __init__(self,list):
 		self.atom=""
 		self.token=[]
+		disableprintlist=[]
 		self.set_list(list)
 	def set_list(self,list):
 		"list=string: ATOM=V PZ=4 0 Z=50"
@@ -322,6 +335,20 @@ class Atomsection:
 		a=a+"]"
 		return self.atom+","+ a
 
+	def disable_print(self,str):
+		self.disableprintlist.append(str)
+		print "disabling ",str, "list=",self.disableprintlist
+
+	def enable_print(self,str):
+		newlist=[]
+		for key in self.disableprintlist:
+			if key==str:
+				i=0
+			else:
+				newlist.append(key)
+		self.disableprintlist=newlist
+		print "enabling ",str, "list=",self.disableprintlist
+
 	def strlist_ctrlform(self):
 		spf="   "
 		sp1=" "
@@ -333,6 +360,20 @@ class Atomsection:
 		token=[]
 		for n in self.token:
 			token.append(n)
+
+		# delete token "PZ="
+		for delkey in self.disableprintlist:
+			for i in range(0,len(token)):
+				n=token[i]
+				if delkey==n.key:
+					token.pop(i)
+					break
+
+		print "debug", self.disableprintlist,  "PZ=" in self.disableprintlist
+		print "first token"
+		for n in token:
+			print n
+		print "--------"
 
 		
 		key="ATOM="
@@ -456,6 +497,8 @@ class Atomsection:
                                 break
                 a.append(str)
 
+
+
                 str=""
 
 		for n in token:
@@ -465,7 +508,7 @@ class Atomsection:
 			for m in n.values:
 				str=str+  m+sp1
 			a.append(str)
-		#print "ctrlform=",a
+		print "ctrlform=",a
 		return  a
 
 
@@ -1009,6 +1052,7 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
                                 stdatom.overwrite(atomsection)
                                 self.specsection[i]=stdatom
 
+
 		print "self.specsection=",len(self.specsection)
 		for aspec in self.specsection:
 			aspec.show()
@@ -1101,6 +1145,12 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
                 + list2Text(self.strucsection)  + "  NBAS= "+ self.ansite + "  NSPEC="+ self.anspec +'\n' \
                 + list2Text(self.sitesection) \
                 + 'SPEC\n'
+		
+		# PZ must be deleted in order to make lmfa mtopara 
+		for n in self.specsection:
+		    if isinstance(n,Atomsection):
+			n.disable_print("PZ=")	
+
                 for n in self.specsection:
 		    if isinstance(n,Atomsection):
                         a= n.strlist_ctrlform()
@@ -1108,6 +1158,7 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
                                 all = all + m + "\n"
 		    else:
 			all=all+n.__str__()+"\n"
+
 		
 		all = all + "\nHAM XCFUN="+ optionvalues.xcfun_val.Get()+"\n"
 		
@@ -1179,6 +1230,10 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
                 + list2Text(self.strucsection)  + "  NBAS= "+ self.ansite + "  NSPEC="+ self.anspec +'\n' \
                 + list2Text(self.sitesection) \
                 + 'SPEC\n'
+
+		for n in self.specsection:
+		    if (isinstance(n,Atomsection)):
+			n.enable_print("PZ=")
                 for n in self.specsection:
 		    if isinstance(n,Atomsection):
                         a= n.strlist_ctrlform()
@@ -1366,6 +1421,9 @@ OPTIONS PFLOAT=1
 		#il1 = countnum(mmm,'RSMH=')
 		il1=4
 		atomsec=Atomsection(atomstd.Getstr(ikey))
+		pzatom=atomsection.Getvalue("PZ=")
+		#pzatom=list2Text2(pzatom)
+		#print "pz=",list2Text(pzatom)
 		z=atomsec.Getvalue("Z=")
 		print "z=",z
 		if is_f_elec(z)==1:
@@ -1384,14 +1442,20 @@ OPTIONS PFLOAT=1
 		rsmh= '%6.3f' % rsmh
 		mmm= 'RSMH=  '          +il1*rsmh+' EH=  '+il1*(optionvalues.eh1.Get()+' ')+'\n' #-1 and -0.5 which is better? 
 		mmm= mmm+ '     RSMH2= '+il1*rsmh+' EH2= '+il1*(optionvalues.eh2.Get()+' ')+'\n'
-		if(len(pz)==2): mmm= mmm +'     PZ'+pz[1]
-		
-		il2 = countnum(mmm,'PZ=')
+		#overwrite PZ= if PZ= is defined in ctrls.* 
+		print "len(pzatom)=",len(pzatom)
+		if ( len(pzatom)>0 ) :
+			il2=len(pzatom)
+			mmm= mmm+ '   PZ='+list2Text2(pzatom)
+		else:
+			if(len(pz)==2): mmm= mmm +'     PZ'+pz[1]
+			il2 = countnum(mmm,'PZ=')
+		print "il2=",il2,"mmm=",mmm
 		lx = max(il1,il2)
 		lll = "%i" % lx
 		il1m=il1-1
 		lmx = "%i" % il1m
-		rmt= '%6.3f' % rmt
+		rmt = '%6.3f' % rmt
 		#print il1,il2,lx
 		aaa = aaa+' R='+rmt +'\n'+' '*5+mmm \
 		    +' '*5+'KMXA={kmxa} '+' LMX='+lmx+' LMXA='+lll+'\n'  \
