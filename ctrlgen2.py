@@ -1287,7 +1287,7 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 		if (optionvalues.systype_val.Get().upper()=="BULK") :
 			tail = tail+ "% const pwemax=2 nk="+optionvalues.nk_val.Get()+" nit=30 gmax=12 "
 		else:
-			tail = tail+ "% const pwemax=2 nk="+optionvalues.nk_val.Get()+" nit=30 gmax=12 "
+			tail = tail+ "% const pwemax=2 nk="+optionvalues.nk_val.Get()+" nit=50 gmax=12 "
 		tail = tail + "        nspin="+optionvalues.nspin_val.Get()+"\n"
 
 		tail = tail + """BZ    NKABC={nk} {nk} {nk}  # division of BZ for q points.
