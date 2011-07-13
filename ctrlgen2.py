@@ -6,7 +6,7 @@ import re
 import textwrap
 
 thisprogram="ctrlgen2"
-version="kino Feb20_2011"
+version="kino_13JUL_2011"
 
 deco="---"
 
@@ -227,6 +227,25 @@ def  lines2Token(linein):
 
 
         return listout
+
+
+def make_mixing_string(optionvalues):
+	""" mixing sentense ,MIX=A5,b=0.3,n=6 and so on."""
+
+	if optionvalues.mix_a_b_val.Changed()==0 and optionvalues.systype_val.Get()=="molecule":
+		b="0.3"
+	else:
+		b=optionvalues.mix_a_b_val.Get()
+	if optionvalues.systype_val.Get()=="molecule":
+		a="5"
+		n="6"
+	else:
+		a="2"
+		n="3"
+	str="MIX=A"+a+",b="+b+",n="+n
+	print "mix string:",str
+	return str
+
 
 #--------------------------------------------
 
@@ -761,6 +780,8 @@ class ValueOnce:
 	def __init__(self,value):
 		self.value=value
 		self.l=0
+	def Changed(self):
+		return self.l
 	def Set(self,value):
 		if self.l==0:
 			self.value=value
@@ -796,6 +817,7 @@ class Optionvalues:
 		self.eh1=ValueOnce("-0.1")
 		self.eh2=ValueOnce("-2.0")
 		self.mix_a_b_val=ValueOnce("0.2")
+		self.fsmom_val=ValueOnce("")
 
 
 	def show_options(self):
@@ -807,9 +829,12 @@ Options:
 \t--nk=integer_value : default=4.  NKABC= nk nk nk 
 \t--systype=(molecule|bulk) : default=molecule
 \t--readrmt : default=not set.  read rmt.tmp file
+\t--fsmom=float_value : default=not set. the value nk also affects related options.
 
 If systype==molecule, 1: nk=1 if --nk is not set explicitly. 2: ELIND=0. 3: uncomment the TETRA=0 part.
 if systype==bulk, 1: ELIND=-1. 2: comment out the TETRA=0 part.
+
+If nk==1; then I set MIX=A5,b=0.3,n=6
 """
 		print msg
 
@@ -844,6 +869,10 @@ if systype==bulk, 1: ELIND=-1. 2: comment out the TETRA=0 part.
 		            nklist=arg.split("=")
 		            if len(nklist)==2:
 		                    self.mix_a_b_val.Set(nklist[1])
+		    elif re.match("--fsmom",arg)!=None and re.match("--fsmom=",arg)!=None:
+		            nklist=arg.split("=")
+		            if len(nklist)==2:
+		                    self.fsmom_val.Set(nklist[1])
 		    elif re.match("--systype",arg)!=None and re.match("--systype=",arg)!=None:
 		            syslist=arg.split("=")
 		            if len(syslist)==2:
@@ -951,7 +980,7 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 		self.lines.insert(0,"#commandlinearguments "+str)
 
                 self.ctrlgensection=GetLines(self.lines,"#ctrlgen")
-                self.lines=RemoveLines(self.lines,"#ctrlgen")
+                #self.lines=RemoveLines(self.lines,"#ctrlgen")
                 optstrlist=[]
                 for n in self.ctrlgensection:
                         s=re.sub("^#ctrlgen ","",n)
@@ -1298,13 +1327,26 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
 
 
 		tail = tail + """      #For Molecule, you may also need to set FSMOM=n_up-n_dn, and FSMOMMETHOD=1 below.
+"""
+		if optionvalues.fsmom_val.Changed()==0:
+			tail= tail + "      #FSMOM=real number (fixed moment method)"
+		else:
+			tail = tail+ "      FSMOM="+optionvalues.fsmom_val.Get()
 
-      #FSMOM=real number (fixed moment method)
-      #  Set the global magnetic moment (collinear magnetic case). In the fixed-spin moment method, 
+		tail = tail + """      #  Set the global magnetic moment (collinear magnetic case). In the fixed-spin moment method, 
       #  a spin-dependent potential shift is added to constrain the total magnetic moment to value 
       #  assigned by FSMOM=. Default is NULL (no FSMOM). FSMOM=0 works now (takao Dec2010)
       #
-      #FSMOMMETHOD=0 #only effective when FSMOM exists. #Added by t.kotani on Dec8.2010
+"""
+		if optionvalues.fsmom_val.Changed()!=0:
+		    if optionvalues.systype_val.Get()=="molecule":
+			tail = tail +"      FSMOMMETHOD=1"
+		    else:
+			tail = tail + "     FSMOMMETHOD=0"
+		else:
+			tail = tail + "      #FSMOMMETHOD=0" 
+
+		tail = tail + """   #only effective when FSMOM exists. #Added by t.kotani on Dec8.2010
       #  =0: original mode suitable for solids.(default)
       #  =1: discrete eigenvalue case. Calculate bias magnetic field from LUMO-HOMO gap for each spins.
       #      Not allowed to use together with HAM_SO=1 (L.S). 
@@ -1335,7 +1377,8 @@ SYMGRP find  # 'find' evaluate space-group symmetry automatically.
       #   If you encounter this message set INVIT=F.
       #  T.Kotani think (this does not yet for lm7K).
 """
-		tail = tail + "ITER MIX=A2,b="+optionvalues.mix_a_b_val.Get()+",n=3 CONV=1e-6 CONVC=1e-6 NIT={nit}"
+		mix_string=make_mixing_string(optionvalues)
+		tail = tail + "ITER "+mix_string+" CONV=1e-6 CONVC=1e-6 NIT={nit}"
 		tail = tail + """
 #ITER MIX=B CONV=1e-6 CONVC=1e-6 NIT={nit}
                 # MIX=A: Anderson mixing.
